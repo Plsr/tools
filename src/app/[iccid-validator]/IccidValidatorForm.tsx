@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEventHandler, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { validateIccid } from "./iccid-validator";
 import { CheckCircleIcon, X } from "lucide-react";
 
