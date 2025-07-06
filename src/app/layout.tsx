@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Link from "next/link";
+import { ArrowLeftFromLineIcon } from "lucide-react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,9 +27,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen antialiased bg-neutral-950 text-neutral-100 flex flex-col`}
       >
-        {children}
+        <div className="p-2">
+          <Link href="/" className="flex gap-2 items-center font-bold">
+            <ArrowLeftFromLineIcon className="h-5 w-5" /> All Tools
+          </Link>
+        </div>
+        <div className="flex h-full flex-grow">{children}</div>
       </body>
     </html>
   );
