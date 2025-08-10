@@ -8,7 +8,7 @@ type IccidState = "valid" | "invalid";
 
 export const IccidValidatorForm = () => {
   const [iccid, setIccid] = useState("");
-  const [iccidSate, setIccidState] = useState<IccidState | null>(null);
+  const [iccidState, setIccidState] = useState<IccidState | null>(null);
 
   useEffect(() => {
     if (iccid.length === 0) {
@@ -24,8 +24,6 @@ export const IccidValidatorForm = () => {
     setIccid(event.target.value);
   };
 
-  console.log(iccidSate);
-
   return (
     <div>
       <span className="text-sm opacity-70 block mb-2">Enter ICCID</span>
@@ -37,14 +35,14 @@ export const IccidValidatorForm = () => {
         onChange={handleInputChange}
       />
       <div className="mt-4">
-        {iccidSate === "valid" && (
+        {iccidState === "valid" && (
           <div className="flex items-center gap-2 text-green-600">
             <CheckCircleIcon className="h-4 w-4" />
 
             <span>Valid ICCID</span>
           </div>
         )}
-        {iccidSate === "invalid" && (
+        {iccidState === "invalid" && (
           <div className="flex items-center gap-2 text-red-600">
             <X className="h-4 w-4" />
 
