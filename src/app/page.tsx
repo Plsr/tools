@@ -1,4 +1,4 @@
-import { CardSim } from "lucide-react";
+import { CardSim, Droplet } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 
@@ -13,6 +13,15 @@ export default function Home() {
         >
           <CardSim className="h-4 w-4 mr-2" />
           ICCID Validator
+        </Link>
+      </div>
+      <div className="mt-2">
+        <Link
+          href="/fluid-to-grams"
+          className="flex items-center underline decoration-dashed"
+        >
+          <Droplet className="mr-2 h-4 w-4" />
+          Fluid to Grams Converter
         </Link>
       </div>
     </div>
