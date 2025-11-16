@@ -146,49 +146,49 @@ export const ImageToAsciiTool = () => {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <span className="text-sm opacity-70 block mb-2">Upload image</span>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={handleFileChange}
-          className="block w-full text-sm text-neutral-300 file:mr-4 file:rounded file:border-0 file:bg-neutral-800 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neutral-100 hover:file:bg-neutral-700"
-        />
-      </div>
-
-      {error && <p className="text-red-500 text-sm">{error}</p>}
-
-      {imageDataUrl && (
+    <div className="grid gap-6 lg:grid-cols-[320px,1fr]">
+      <div className="space-y-4">
         <div>
-          <span className="text-sm opacity-70 block mb-2">Preview</span>
-          <img
-            src={imageDataUrl}
-            alt="Uploaded preview"
-            className="max-h-48 rounded border border-neutral-800"
+          <span className="text-sm opacity-70 block mb-2">Upload image</span>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="block w-full text-sm text-neutral-300 file:mr-4 file:rounded file:border-0 file:bg-neutral-800 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neutral-100 hover:file:bg-neutral-700"
           />
         </div>
-      )}
 
-      <div>
-        <span className="text-sm opacity-70 block mb-2">ASCII output</span>
-        <div className="space-y-2">
-          <div className="text-xs text-neutral-400">
-            {outputWidth
-              ? `Rendered at ${outputWidth} columns for maximum detail.`
-              : "Upload to see a high-resolution ASCII render."}
+        {error && <p className="text-red-500 text-sm">{error}</p>}
+
+        {imageDataUrl && (
+          <div>
+            <span className="text-sm opacity-70 block mb-2">Preview</span>
+            <img
+              src={imageDataUrl}
+              alt="Uploaded preview"
+              className="max-h-36 rounded border border-neutral-800 object-contain"
+            />
           </div>
-          <pre
-            className="bg-black/40 p-4 rounded overflow-auto whitespace-pre text-green-400 border border-neutral-800 min-h-40"
-            style={{
-              fontSize: `${OUTPUT_FONT_SIZE}px`,
-              lineHeight: `${OUTPUT_FONT_SIZE * OUTPUT_LINE_HEIGHT}px`,
-              letterSpacing: "0.4px",
-            }}
-          >
-            {asciiArt || "Upload an image to generate ASCII art."}
-          </pre>
+        )}
+      </div>
+
+      <div className="flex flex-col space-y-2">
+        <span className="text-sm opacity-70 block">ASCII output</span>
+        <div className="text-xs text-neutral-400">
+          {outputWidth
+            ? `Rendered at ${outputWidth} columns for maximum detail.`
+            : "Upload to see a high-resolution ASCII render."}
         </div>
+        <pre
+          className="flex-1 bg-black p-4 rounded overflow-auto whitespace-pre text-neutral-100 border border-neutral-800 min-h-[22rem]"
+          style={{
+            fontSize: `${OUTPUT_FONT_SIZE}px`,
+            lineHeight: `${OUTPUT_FONT_SIZE * OUTPUT_LINE_HEIGHT}px`,
+            letterSpacing: "0.4px",
+          }}
+        >
+          {asciiArt || "Upload an image to generate ASCII art."}
+        </pre>
       </div>
     </div>
   );
