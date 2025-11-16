@@ -3,15 +3,16 @@
 
 import { useEffect, useState } from "react";
 
-const DEFAULT_WIDTH = 80;
-const DEFAULT_BUCKETS = 18;
-const DEFAULT_VERTICAL_SCALE = 0.75;
-const OUTPUT_FONT_SIZE = 9;
-const OUTPUT_LINE_HEIGHT = 0.68;
+const MIN_OUTPUT_WIDTH = 160;
+const MAX_OUTPUT_WIDTH = 240;
+const WIDTH_SCALE = 0.85;
+const DEFAULT_BUCKETS = 32;
+const DEFAULT_VERTICAL_SCALE = 1.1;
+const OUTPUT_FONT_SIZE = 7;
+const OUTPUT_LINE_HEIGHT = 0.58;
 
 const BASE_ASCII_GRADIENT =
   " .'`\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
-const REVERSED_ASCII_GRADIENT = BASE_ASCII_GRADIENT.split("").reverse().join("");
 
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
@@ -40,7 +41,6 @@ const buildAsciiArt = (
 
   const pixelCount = width * height;
   const brightnessValues = new Float32Array(pixelCount);
-  let totalBrightness = 0;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -52,12 +52,10 @@ const buildAsciiArt = (
       const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
       const pixelIndex = y * width + x;
       brightnessValues[pixelIndex] = brightness;
-      totalBrightness += brightness;
     }
   }
 
-  const averageBrightness = totalBrightness / pixelCount;
-  const gradient = averageBrightness > 127 ? BASE_ASCII_GRADIENT : REVERSED_ASCII_GRADIENT;
+  const gradient = BASE_ASCII_GRADIENT;
   const bucketSize = 255 / Math.max(1, buckets - 1);
   let ascii = "";
 
@@ -82,13 +80,14 @@ const buildAsciiArt = (
 export const ImageToAsciiTool = () => {
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [asciiArt, setAsciiArt] = useState("");
-  const [width, setWidth] = useState(DEFAULT_WIDTH);
+  const [outputWidth, setOutputWidth] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!imageDataUrl) {
       setAsciiArt("");
       setError(null);
+      setOutputWidth(null);
       return undefined;
     }
 
@@ -101,8 +100,14 @@ export const ImageToAsciiTool = () => {
       }
 
       try {
-        const art = buildAsciiArt(image, width, DEFAULT_BUCKETS, DEFAULT_VERTICAL_SCALE);
+        const derivedWidth = clamp(
+          Math.round(image.width * WIDTH_SCALE),
+          MIN_OUTPUT_WIDTH,
+          MAX_OUTPUT_WIDTH,
+        );
+        const art = buildAsciiArt(image, derivedWidth, DEFAULT_BUCKETS, DEFAULT_VERTICAL_SCALE);
         setAsciiArt(art);
+        setOutputWidth(derivedWidth);
         setError(null);
       } catch (conversionError) {
         setError(
@@ -124,7 +129,7 @@ export const ImageToAsciiTool = () => {
     return () => {
       cancelled = true;
     };
-  }, [imageDataUrl, width]);
+  }, [imageDataUrl]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -140,14 +145,6 @@ export const ImageToAsciiTool = () => {
     reader.readAsDataURL(file);
   };
 
-  const handleWidthChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    if (Number.isNaN(value)) {
-      return;
-    }
-    setWidth(Math.min(200, Math.max(20, value)));
-  };
-
   return (
     <div className="space-y-4">
       <div>
@@ -157,21 +154,6 @@ export const ImageToAsciiTool = () => {
           accept="image/*"
           onChange={handleFileChange}
           className="block w-full text-sm text-neutral-300 file:mr-4 file:rounded file:border-0 file:bg-neutral-800 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-neutral-100 hover:file:bg-neutral-700"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-width">
-          Output width ({width} characters)
-        </label>
-        <input
-          id="ascii-width"
-          type="range"
-          min={20}
-          max={200}
-          value={width}
-          onChange={handleWidthChange}
-          className="w-full"
         />
       </div>
 
@@ -190,15 +172,23 @@ export const ImageToAsciiTool = () => {
 
       <div>
         <span className="text-sm opacity-70 block mb-2">ASCII output</span>
-        <pre
-          className="bg-black/40 p-4 rounded overflow-auto whitespace-pre text-green-400 border border-neutral-800 min-h-40"
-          style={{
-            fontSize: `${OUTPUT_FONT_SIZE}px`,
-            lineHeight: `${OUTPUT_FONT_SIZE * OUTPUT_LINE_HEIGHT}px`,
-          }}
-        >
-          {asciiArt || "Upload an image to generate ASCII art."}
-        </pre>
+        <div className="space-y-2">
+          <div className="text-xs text-neutral-400">
+            {outputWidth
+              ? `Rendered at ${outputWidth} columns for maximum detail.`
+              : "Upload to see a high-resolution ASCII render."}
+          </div>
+          <pre
+            className="bg-black/40 p-4 rounded overflow-auto whitespace-pre text-green-400 border border-neutral-800 min-h-40"
+            style={{
+              fontSize: `${OUTPUT_FONT_SIZE}px`,
+              lineHeight: `${OUTPUT_FONT_SIZE * OUTPUT_LINE_HEIGHT}px`,
+              letterSpacing: "0.4px",
+            }}
+          >
+            {asciiArt || "Upload an image to generate ASCII art."}
+          </pre>
+        </div>
       </div>
     </div>
   );
