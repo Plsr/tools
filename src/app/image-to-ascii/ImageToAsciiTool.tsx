@@ -13,9 +13,21 @@ const ASCII_GRADIENTS = [
     value: " .:-=+*#%@",
   },
   {
+    id: "light-bg-fine",
+    label: "Light background (fine detail)",
+    value:
+      " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
+  },
+  {
     id: "dark-bg",
     label: "Dark background (subject lighter)",
     value: "@%#*+=-:. ",
+  },
+  {
+    id: "dark-bg-fine",
+    label: "Dark background (fine detail)",
+    value:
+      "@$B%8&WM#*okdbpqmwZO0QLCJUYXzcvunxrjft/\\|)(1}{][?-_+~<>i!lI;:,\"^`'. ",
   },
   {
     id: "blocky",
