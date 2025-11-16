@@ -6,6 +6,8 @@ import { useEffect, useMemo, useState } from "react";
 const DEFAULT_WIDTH = 80;
 const ASCII_GRADIENT = "@%#*+=-:. ";
 
+const BRIGHTNESS_BUCKETS = 12;
+
 const buildAsciiArt = (
   image: HTMLImageElement,
   width: number,
@@ -37,8 +39,10 @@ const buildAsciiArt = (
       const b = data[offset + 2];
 
       const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
+      const bucketSize = 255 / (BRIGHTNESS_BUCKETS - 1);
+      const smoothedBrightness = Math.round(brightness / bucketSize) * bucketSize;
       const gradientIndex = Math.floor(
-        ((gradient.length - 1) * (255 - brightness)) / 255,
+        ((gradient.length - 1) * (255 - smoothedBrightness)) / 255,
       );
       ascii += gradient[gradientIndex];
     }
