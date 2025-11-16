@@ -4,14 +4,31 @@
 import { useEffect, useMemo, useState } from "react";
 
 const DEFAULT_WIDTH = 80;
-const ASCII_GRADIENT = "@%#*+=-:. ";
+const DEFAULT_BUCKETS = 12;
 
-const BRIGHTNESS_BUCKETS = 12;
+const ASCII_GRADIENTS = [
+  {
+    id: "light-bg",
+    label: "Light background (subject darker)",
+    value: " .:-=+*#%@",
+  },
+  {
+    id: "dark-bg",
+    label: "Dark background (subject lighter)",
+    value: "@%#*+=-:. ",
+  },
+  {
+    id: "blocky",
+    label: "Blocky",
+    value: "█▓▒░ ",
+  },
+];
 
 const buildAsciiArt = (
   image: HTMLImageElement,
   width: number,
   gradient: string,
+  buckets: number,
 ) => {
   const canvas = document.createElement("canvas");
   const scale = width / image.width;
@@ -39,7 +56,7 @@ const buildAsciiArt = (
       const b = data[offset + 2];
 
       const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-      const bucketSize = 255 / (BRIGHTNESS_BUCKETS - 1);
+      const bucketSize = 255 / Math.max(1, buckets - 1);
       const smoothedBrightness = Math.round(brightness / bucketSize) * bucketSize;
       const gradientIndex = Math.floor(
         ((gradient.length - 1) * (255 - smoothedBrightness)) / 255,
@@ -57,11 +74,16 @@ export const ImageToAsciiTool = () => {
   const [asciiArt, setAsciiArt] = useState("");
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [error, setError] = useState<string | null>(null);
+  const [selectedGradientId, setSelectedGradientId] = useState(ASCII_GRADIENTS[0].id);
+  const [brightnessBuckets, setBrightnessBuckets] = useState(DEFAULT_BUCKETS);
 
-  const gradient = useMemo(() => ASCII_GRADIENT, []);
+  const gradient = useMemo(
+    () => ASCII_GRADIENTS.find((option) => option.id === selectedGradientId)?.value,
+    [selectedGradientId],
+  );
 
   useEffect(() => {
-    if (!imageDataUrl) {
+    if (!imageDataUrl || !gradient) {
       setAsciiArt("");
       setError(null);
       return undefined;
@@ -76,7 +98,7 @@ export const ImageToAsciiTool = () => {
       }
 
       try {
-        const art = buildAsciiArt(image, width, gradient);
+        const art = buildAsciiArt(image, width, gradient, brightnessBuckets);
         setAsciiArt(art);
         setError(null);
       } catch (conversionError) {
@@ -99,7 +121,7 @@ export const ImageToAsciiTool = () => {
     return () => {
       cancelled = true;
     };
-  }, [gradient, imageDataUrl, width]);
+  }, [brightnessBuckets, gradient, imageDataUrl, width]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -121,6 +143,18 @@ export const ImageToAsciiTool = () => {
       return;
     }
     setWidth(Math.min(200, Math.max(20, value)));
+  };
+
+  const handleGradientChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedGradientId(event.target.value);
+  };
+
+  const handleBucketsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(event.target.value);
+    if (Number.isNaN(value)) {
+      return;
+    }
+    setBrightnessBuckets(Math.min(32, Math.max(2, value)));
   };
 
   return (
@@ -146,6 +180,39 @@ export const ImageToAsciiTool = () => {
           max={200}
           value={width}
           onChange={handleWidthChange}
+          className="w-full"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-gradient">
+          Character style
+        </label>
+        <select
+          id="ascii-gradient"
+          value={selectedGradientId}
+          onChange={handleGradientChange}
+          className="w-full rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm"
+        >
+          {ASCII_GRADIENTS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-buckets">
+          Tone smoothing ({brightnessBuckets} levels)
+        </label>
+        <input
+          id="ascii-buckets"
+          type="range"
+          min={2}
+          max={32}
+          value={brightnessBuckets}
+          onChange={handleBucketsChange}
           className="w-full"
         />
       </div>
