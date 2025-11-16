@@ -1,47 +1,24 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 const DEFAULT_WIDTH = 80;
-const DEFAULT_BUCKETS = 12;
-const DEFAULT_VERTICAL_SCALE = 0.55;
-const DEFAULT_FONT_SIZE = 10;
+const DEFAULT_BUCKETS = 18;
+const DEFAULT_VERTICAL_SCALE = 0.75;
+const OUTPUT_FONT_SIZE = 9;
+const OUTPUT_LINE_HEIGHT = 0.68;
 
-const ASCII_GRADIENTS = [
-  {
-    id: "light-bg",
-    label: "Light background (subject darker)",
-    value: " .:-=+*#%@",
-  },
-  {
-    id: "light-bg-fine",
-    label: "Light background (fine detail)",
-    value:
-      " .'`^\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$",
-  },
-  {
-    id: "dark-bg",
-    label: "Dark background (subject lighter)",
-    value: "@%#*+=-:. ",
-  },
-  {
-    id: "dark-bg-fine",
-    label: "Dark background (fine detail)",
-    value:
-      "@$B%8&WM#*okdbpqmwZO0QLCJUYXzcvunxrjft/\\|)(1}{][?-_+~<>i!lI;:,\"^`'. ",
-  },
-  {
-    id: "blocky",
-    label: "Blocky",
-    value: "█▓▒░ ",
-  },
-];
+const BASE_ASCII_GRADIENT =
+  " .'`\",:;Il!i><~+_-?][}{1)(|\\/tfjrxnuvczXYUJCLQ0OZmwqpdbkhao*#MW&8%B@$";
+const REVERSED_ASCII_GRADIENT = BASE_ASCII_GRADIENT.split("").reverse().join("");
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
 
 const buildAsciiArt = (
   image: HTMLImageElement,
   width: number,
-  gradient: string,
   buckets: number,
   verticalScale: number,
 ) => {
@@ -61,7 +38,9 @@ const buildAsciiArt = (
   const imageData = context.getImageData(0, 0, width, height);
   const { data } = imageData;
 
-  let ascii = "";
+  const pixelCount = width * height;
+  const brightnessValues = new Float32Array(pixelCount);
+  let totalBrightness = 0;
 
   for (let y = 0; y < height; y += 1) {
     for (let x = 0; x < width; x += 1) {
@@ -71,12 +50,28 @@ const buildAsciiArt = (
       const b = data[offset + 2];
 
       const brightness = 0.299 * r + 0.587 * g + 0.114 * b;
-      const bucketSize = 255 / Math.max(1, buckets - 1);
+      const pixelIndex = y * width + x;
+      brightnessValues[pixelIndex] = brightness;
+      totalBrightness += brightness;
+    }
+  }
+
+  const averageBrightness = totalBrightness / pixelCount;
+  const gradient = averageBrightness > 127 ? BASE_ASCII_GRADIENT : REVERSED_ASCII_GRADIENT;
+  const bucketSize = 255 / Math.max(1, buckets - 1);
+  let ascii = "";
+
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const brightness = brightnessValues[y * width + x];
       const smoothedBrightness = Math.round(brightness / bucketSize) * bucketSize;
       const gradientIndex = Math.floor(
         ((gradient.length - 1) * (255 - smoothedBrightness)) / 255,
       );
-      ascii += gradient[gradientIndex];
+      const safeIndex = Number.isFinite(gradientIndex)
+        ? clamp(gradientIndex, 0, gradient.length - 1)
+        : 0;
+      ascii += gradient.charAt(safeIndex) || " ";
     }
     ascii += "\n";
   }
@@ -89,18 +84,9 @@ export const ImageToAsciiTool = () => {
   const [asciiArt, setAsciiArt] = useState("");
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGradientId, setSelectedGradientId] = useState(ASCII_GRADIENTS[0].id);
-  const [brightnessBuckets, setBrightnessBuckets] = useState(DEFAULT_BUCKETS);
-  const [verticalScale, setVerticalScale] = useState(DEFAULT_VERTICAL_SCALE);
-  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
-
-  const gradient = useMemo(
-    () => ASCII_GRADIENTS.find((option) => option.id === selectedGradientId)?.value,
-    [selectedGradientId],
-  );
 
   useEffect(() => {
-    if (!imageDataUrl || !gradient) {
+    if (!imageDataUrl) {
       setAsciiArt("");
       setError(null);
       return undefined;
@@ -115,13 +101,7 @@ export const ImageToAsciiTool = () => {
       }
 
       try {
-        const art = buildAsciiArt(
-          image,
-          width,
-          gradient,
-          brightnessBuckets,
-          verticalScale,
-        );
+        const art = buildAsciiArt(image, width, DEFAULT_BUCKETS, DEFAULT_VERTICAL_SCALE);
         setAsciiArt(art);
         setError(null);
       } catch (conversionError) {
@@ -144,7 +124,7 @@ export const ImageToAsciiTool = () => {
     return () => {
       cancelled = true;
     };
-  }, [brightnessBuckets, gradient, imageDataUrl, verticalScale, width]);
+  }, [imageDataUrl, width]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -166,34 +146,6 @@ export const ImageToAsciiTool = () => {
       return;
     }
     setWidth(Math.min(200, Math.max(20, value)));
-  };
-
-  const handleGradientChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
-    setSelectedGradientId(event.target.value);
-  };
-
-  const handleBucketsChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    if (Number.isNaN(value)) {
-      return;
-    }
-    setBrightnessBuckets(Math.min(32, Math.max(2, value)));
-  };
-
-  const handleVerticalScaleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    if (Number.isNaN(value)) {
-      return;
-    }
-    setVerticalScale(Number(value));
-  };
-
-  const handleFontSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const value = Number(event.target.value);
-    if (Number.isNaN(value)) {
-      return;
-    }
-    setFontSize(Math.min(16, Math.max(8, value)));
   };
 
   return (
@@ -223,70 +175,6 @@ export const ImageToAsciiTool = () => {
         />
       </div>
 
-      <div>
-        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-gradient">
-          Character style
-        </label>
-        <select
-          id="ascii-gradient"
-          value={selectedGradientId}
-          onChange={handleGradientChange}
-          className="w-full rounded border border-neutral-800 bg-neutral-900 px-3 py-2 text-sm"
-        >
-          {ASCII_GRADIENTS.map((option) => (
-            <option key={option.id} value={option.id}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      <div>
-        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-buckets">
-          Tone smoothing ({brightnessBuckets} levels)
-        </label>
-        <input
-          id="ascii-buckets"
-          type="range"
-          min={2}
-          max={32}
-          value={brightnessBuckets}
-          onChange={handleBucketsChange}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-rows">
-          Row density ({verticalScale.toFixed(2)}x)
-        </label>
-        <input
-          id="ascii-rows"
-          type="range"
-          min={0.3}
-          max={1}
-          step={0.05}
-          value={verticalScale}
-          onChange={handleVerticalScaleChange}
-          className="w-full"
-        />
-      </div>
-
-      <div>
-        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-font-size">
-          Font size ({fontSize}px)
-        </label>
-        <input
-          id="ascii-font-size"
-          type="range"
-          min={8}
-          max={16}
-          value={fontSize}
-          onChange={handleFontSizeChange}
-          className="w-full"
-        />
-      </div>
-
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {imageDataUrl && (
@@ -304,7 +192,10 @@ export const ImageToAsciiTool = () => {
         <span className="text-sm opacity-70 block mb-2">ASCII output</span>
         <pre
           className="bg-black/40 p-4 rounded overflow-auto whitespace-pre text-green-400 border border-neutral-800 min-h-40"
-          style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 0.8}px` }}
+          style={{
+            fontSize: `${OUTPUT_FONT_SIZE}px`,
+            lineHeight: `${OUTPUT_FONT_SIZE * OUTPUT_LINE_HEIGHT}px`,
+          }}
         >
           {asciiArt || "Upload an image to generate ASCII art."}
         </pre>
