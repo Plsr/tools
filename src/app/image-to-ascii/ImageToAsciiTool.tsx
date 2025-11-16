@@ -5,6 +5,8 @@ import { useEffect, useMemo, useState } from "react";
 
 const DEFAULT_WIDTH = 80;
 const DEFAULT_BUCKETS = 12;
+const DEFAULT_VERTICAL_SCALE = 0.55;
+const DEFAULT_FONT_SIZE = 10;
 
 const ASCII_GRADIENTS = [
   {
@@ -41,10 +43,11 @@ const buildAsciiArt = (
   width: number,
   gradient: string,
   buckets: number,
+  verticalScale: number,
 ) => {
   const canvas = document.createElement("canvas");
   const scale = width / image.width;
-  const height = Math.max(1, Math.round(image.height * scale * 0.55));
+  const height = Math.max(1, Math.round(image.height * scale * verticalScale));
 
   canvas.width = width;
   canvas.height = height;
@@ -88,6 +91,8 @@ export const ImageToAsciiTool = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedGradientId, setSelectedGradientId] = useState(ASCII_GRADIENTS[0].id);
   const [brightnessBuckets, setBrightnessBuckets] = useState(DEFAULT_BUCKETS);
+  const [verticalScale, setVerticalScale] = useState(DEFAULT_VERTICAL_SCALE);
+  const [fontSize, setFontSize] = useState(DEFAULT_FONT_SIZE);
 
   const gradient = useMemo(
     () => ASCII_GRADIENTS.find((option) => option.id === selectedGradientId)?.value,
@@ -110,7 +115,13 @@ export const ImageToAsciiTool = () => {
       }
 
       try {
-        const art = buildAsciiArt(image, width, gradient, brightnessBuckets);
+        const art = buildAsciiArt(
+          image,
+          width,
+          gradient,
+          brightnessBuckets,
+          verticalScale,
+        );
         setAsciiArt(art);
         setError(null);
       } catch (conversionError) {
@@ -133,7 +144,7 @@ export const ImageToAsciiTool = () => {
     return () => {
       cancelled = true;
     };
-  }, [brightnessBuckets, gradient, imageDataUrl, width]);
+  }, [brightnessBuckets, gradient, imageDataUrl, verticalScale, width]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -167,6 +178,22 @@ export const ImageToAsciiTool = () => {
       return;
     }
     setBrightnessBuckets(Math.min(32, Math.max(2, value)));
+  };
+
+  const handleVerticalScaleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(event.target.value);
+    if (Number.isNaN(value)) {
+      return;
+    }
+    setVerticalScale(Number(value));
+  };
+
+  const handleFontSizeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const value = Number(event.target.value);
+    if (Number.isNaN(value)) {
+      return;
+    }
+    setFontSize(Math.min(16, Math.max(8, value)));
   };
 
   return (
@@ -229,6 +256,37 @@ export const ImageToAsciiTool = () => {
         />
       </div>
 
+      <div>
+        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-rows">
+          Row density ({verticalScale.toFixed(2)}x)
+        </label>
+        <input
+          id="ascii-rows"
+          type="range"
+          min={0.3}
+          max={1}
+          step={0.05}
+          value={verticalScale}
+          onChange={handleVerticalScaleChange}
+          className="w-full"
+        />
+      </div>
+
+      <div>
+        <label className="text-sm opacity-70 block mb-2" htmlFor="ascii-font-size">
+          Font size ({fontSize}px)
+        </label>
+        <input
+          id="ascii-font-size"
+          type="range"
+          min={8}
+          max={16}
+          value={fontSize}
+          onChange={handleFontSizeChange}
+          className="w-full"
+        />
+      </div>
+
       {error && <p className="text-red-500 text-sm">{error}</p>}
 
       {imageDataUrl && (
@@ -244,7 +302,10 @@ export const ImageToAsciiTool = () => {
 
       <div>
         <span className="text-sm opacity-70 block mb-2">ASCII output</span>
-        <pre className="bg-black/40 p-4 rounded overflow-auto text-xs leading-[0.8rem] whitespace-pre text-green-400 border border-neutral-800 min-h-40">
+        <pre
+          className="bg-black/40 p-4 rounded overflow-auto whitespace-pre text-green-400 border border-neutral-800 min-h-40"
+          style={{ fontSize: `${fontSize}px`, lineHeight: `${fontSize * 0.8}px` }}
+        >
           {asciiArt || "Upload an image to generate ASCII art."}
         </pre>
       </div>
