@@ -74,7 +74,12 @@ const parseToon = (input: string): unknown => {
         continue;
       }
 
-      return { line: lines[i], trimmed, indent: countIndent(lines[i]) };
+      return {
+        line: lines[i],
+        trimmed,
+        indent: countIndent(lines[i]),
+        index: i,
+      };
     }
 
     return null;
@@ -161,14 +166,52 @@ const parseToon = (input: string): unknown => {
     const valuePart = match[2];
     if (!valuePart) {
       const nextLine = findNextMeaningfulLine(index);
-      const childIsArray = nextLine?.trimmed.startsWith("-") ?? false;
-      const child: ToonContainer = childIsArray ? [] : {};
-      (current.container as Record<string, unknown>)[key] = child;
-      stack.push({
-        indent,
-        container: child,
-        type: childIsArray ? "array" : "object",
-      });
+      const isIndentedValue =
+        nextLine &&
+        nextLine.indent > indent &&
+        !nextLine.trimmed.startsWith("-") &&
+        !nextLine.trimmed.includes(":");
+
+      if (isIndentedValue) {
+        const collected: string[] = [];
+        let cursor = nextLine.index;
+        while (cursor < lines.length) {
+          const candidate = lines[cursor];
+          const candidateTrimmed = candidate.trim();
+          if (!candidateTrimmed || COMMENT_RE.test(candidateTrimmed)) {
+            cursor += 1;
+            continue;
+          }
+
+          const candidateIndent = countIndent(candidate);
+          if (candidateIndent <= indent) {
+            break;
+          }
+
+          if (
+            candidateTrimmed.startsWith("-") ||
+            candidateTrimmed.includes(":")
+          ) {
+            break;
+          }
+
+          collected.push(candidateTrimmed);
+          cursor += 1;
+        }
+
+        (current.container as Record<string, unknown>)[key] =
+          collected.join("\n");
+        index = cursor - 1;
+      } else {
+        const childIsArray = nextLine?.trimmed.startsWith("-") ?? false;
+        const child: ToonContainer = childIsArray ? [] : {};
+        (current.container as Record<string, unknown>)[key] = child;
+        stack.push({
+          indent,
+          container: child,
+          type: childIsArray ? "array" : "object",
+        });
+      }
     } else {
       (current.container as Record<string, unknown>)[key] =
         parseScalar(valuePart);
