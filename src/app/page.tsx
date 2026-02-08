@@ -1,4 +1,4 @@
-import { CardSim, Image as ImageIcon } from "lucide-react";
+import { CardSim, FileText, Image as ImageIcon } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 
@@ -20,6 +20,13 @@ export default function Home() {
         >
           <ImageIcon className="h-4 w-4 mr-2" />
           Image to ASCII
+        </Link>
+        <Link
+          href="/toon-tool"
+          className="flex items-center underline decoration-dashed"
+        >
+          <FileText className="h-4 w-4 mr-2" />
+          TOON Formatter
         </Link>
       </div>
     </div>
