@@ -1,4 +1,4 @@
-import { CardSim, Image as ImageIcon } from "lucide-react";
+import { Beaker, CardSim, Image as ImageIcon } from "lucide-react";
 import { Metadata } from "next";
 import Link from "next/link";
 
@@ -20,6 +20,13 @@ export default function Home() {
         >
           <ImageIcon className="h-4 w-4 mr-2" />
           Image to ASCII
+        </Link>
+        <Link
+          href="/unit-converter"
+          className="flex items-center underline decoration-dashed"
+        >
+          <Beaker className="h-4 w-4 mr-2" />
+          Unit Converter
         </Link>
       </div>
     </div>
