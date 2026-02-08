@@ -64,6 +64,29 @@ const parseScalar = (rawValue: string): unknown => {
   return trimmed;
 };
 
+const parseCommaList = (valuePart: string) =>
+  valuePart
+    .split(",")
+    .map((entry) => parseScalar(entry.trim()))
+    .filter((entry) => entry !== "");
+
+const parseKeySpec = (rawKey: string) => {
+  const match = rawKey.match(
+    /^(?<name>[^\[\{]+)(?:\[(?<count>\d+)\])?(?:\{(?<fields>[^}]+)\})?$/,
+  );
+  if (!match || !match.groups) {
+    return null;
+  }
+
+  return {
+    name: match.groups.name.trim(),
+    count: match.groups.count ? Number(match.groups.count) : null,
+    fields: match.groups.fields
+      ? match.groups.fields.split(",").map((field) => field.trim())
+      : null,
+  };
+};
+
 const parseToon = (input: string): unknown => {
   const lines = input.replace(/\t/g, "  ").split(/\r?\n/);
 
@@ -162,8 +185,10 @@ const parseToon = (input: string): unknown => {
       throw new Error(`Unable to parse line: "${trimmed}"`);
     }
 
-    const key = match[1].trim();
+    const rawKey = match[1].trim();
     const valuePart = match[2];
+    const keySpec = parseKeySpec(rawKey);
+    const key = keySpec?.name ?? rawKey;
     if (!valuePart) {
       const nextLine = findNextMeaningfulLine(index);
       const isIndentedValue =
@@ -199,8 +224,30 @@ const parseToon = (input: string): unknown => {
           cursor += 1;
         }
 
-        (current.container as Record<string, unknown>)[key] =
-          collected.join("\n");
+        const joined = collected.join("\n");
+        if (keySpec?.fields?.length) {
+          const rows = collected
+            .map((row) =>
+              row
+                .split(",")
+                .map((entry) => parseScalar(entry.trim())),
+            )
+            .filter((row) => row.length > 0);
+          (current.container as Record<string, unknown>)[key] = rows.map(
+            (row) =>
+              Object.fromEntries(
+                keySpec.fields.map((field, fieldIndex) => [
+                  field,
+                  row[fieldIndex] ?? null,
+                ]),
+              ),
+          );
+        } else if (keySpec?.count) {
+          (current.container as Record<string, unknown>)[key] =
+            parseCommaList(joined);
+        } else {
+          (current.container as Record<string, unknown>)[key] = joined;
+        }
         index = cursor - 1;
       } else {
         const childIsArray = nextLine?.trimmed.startsWith("-") ?? false;
@@ -213,8 +260,13 @@ const parseToon = (input: string): unknown => {
         });
       }
     } else {
-      (current.container as Record<string, unknown>)[key] =
-        parseScalar(valuePart);
+      if (keySpec?.count) {
+        (current.container as Record<string, unknown>)[key] =
+          parseCommaList(valuePart);
+      } else {
+        (current.container as Record<string, unknown>)[key] =
+          parseScalar(valuePart);
+      }
     }
   }
 
